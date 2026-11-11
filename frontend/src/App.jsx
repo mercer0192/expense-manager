@@ -249,7 +249,13 @@ function App() {
           <button
             className="button button-primary"
             type="button"
-            onClick={openNewExpenseForm}
+            onClick={() => {
+              if (formOpen && editingExpenseId === null) {
+                closeForm()
+              } else {
+                openNewExpenseForm()
+              }
+            }}
             aria-expanded={formOpen}
             aria-controls="expense-form-panel"
           >
