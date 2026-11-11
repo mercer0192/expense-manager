@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
 
 const getCurrentDateTime = () => {
@@ -31,6 +31,23 @@ function App() {
   const [expenses, setExpenses] = useState([])
   const [form, setForm] = useState(createEmptyForm)
   const [formOpen, setFormOpen] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/expenses')
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`Request failed: ${response.status}`)
+          }
+
+          return response.json()
+        })
+        .then((data) => {
+          setExpenses(data)
+        })
+        .catch((error) => {
+          console.error('Could not load expenses:', error)
+        })
+  }, [])
 
   const now = new Date()
   const thisMonthExpenses = expenses.filter((expense) => {
