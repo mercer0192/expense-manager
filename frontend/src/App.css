@@ -211,42 +211,6 @@ select:focus-visible {
   color: #91a197;
 }
 
-.summary-period-toggle {
-  height: 28px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 8px;
-  color: #315b48;
-  background: #dcebe0;
-  font: inherit;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  cursor: pointer;
-}
-
-.summary-period-toggle:hover {
-  background: #cfe2d4;
-}
-
-.summary-card-featured .summary-period-toggle {
-  color: #dff1e4;
-  background: rgba(255, 255, 255, 0.14);
-}
-
-.summary-card-featured .summary-period-toggle:hover {
-  background: rgba(255, 255, 255, 0.22);
-}
-
-.summary-card:not(.summary-card-featured) .summary-period-toggle {
-  color: #38664e;
-  background: #edf4ef;
-}
-
-.summary-card:not(.summary-card-featured) .summary-period-toggle:hover {
-  background: #dcebe0;
-}
-
 .summary-card > p {
   margin: 0 0 5px;
   color: #78867d;
@@ -314,6 +278,89 @@ select:focus-visible {
   letter-spacing: -0.25px;
 }
 
+.transactions-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.month-filter-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #849087;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.month-filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 110px;
+  min-height: 32px;
+  padding: 0 10px 0 9px;
+  color: #315b48;
+  background: #f4f8f5;
+  border: 1px solid #cddbd0;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+}
+
+.month-filter-dropdown {
+  position: relative;
+}
+
+.month-filter-chevron {
+  width: 5px;
+  height: 5px;
+  flex: 0 0 auto;
+  border-right: 1.25px solid #849087;
+  border-bottom: 1.25px solid #849087;
+  transform: translateY(-1px) rotate(45deg);
+}
+
+.month-filter-menu {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 7px);
+  right: 0;
+  width: max-content;
+  min-width: 100%;
+  max-width: min(250px, calc(100vw - 40px));
+  max-height: 240px;
+  padding: 6px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #e3eae4;
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(29, 54, 39, 0.14);
+}
+
+.month-filter-option {
+  display: block;
+  width: 100%;
+  padding: 9px 11px;
+  color: #526057;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  font-size: 11px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.month-filter-option:hover,
+.month-filter-option[aria-pressed="true"] {
+  color: #315b48;
+  background: #eff5f0;
+}
+
 .transaction-count {
   padding: 6px 10px;
   color: #65746a;
@@ -321,6 +368,15 @@ select:focus-visible {
   border-radius: 20px;
   font-size: 11px;
   font-weight: 600;
+}
+
+.action-error {
+  margin: 0;
+  padding: 12px 22px;
+  color: #9a3f36;
+  background: #fff4f2;
+  border-bottom: 1px solid #f2d8d4;
+  font-size: 12px;
 }
 
 .empty-state {
@@ -419,6 +475,43 @@ select:focus-visible {
 .amount-cell {
   color: #27372e !important;
   font-weight: 650;
+}
+
+.expense-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.row-action-button {
+  min-height: 30px;
+  padding: 0 9px;
+  color: #315b48;
+  background: #f3f7f4;
+  border: 1px solid #e1e9e2;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.row-action-button:hover {
+  background: #e8f0ea;
+}
+
+.row-action-delete {
+  color: #9a3f36;
+  background: #fff;
+  border-color: #f0dedb;
+}
+
+.row-action-delete:hover {
+  background: #fff4f2;
+}
+
+.row-action-button:focus-visible,
+.month-filter:focus-visible {
+  outline: 3px solid rgba(55, 113, 83, 0.23);
+  outline-offset: 2px;
 }
 
 .form-card {
@@ -548,6 +641,39 @@ select:focus-visible {
   .transactions-heading,
   .card-heading {
     padding: 17px;
+  }
+
+  .transactions-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .transactions-tools {
+    width: 100%;
+    min-width: 0;
+    justify-content: space-between;
+  }
+
+  .month-filter-label {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .month-filter-dropdown {
+    min-width: 0;
+  }
+
+  .month-filter {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .month-filter > span:first-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .expense-table th,

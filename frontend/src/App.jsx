@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 
 const getCurrentDateTime = () => {
@@ -20,10 +20,22 @@ const formatAmount = (amount) =>
     maximumFractionDigits: 2,
   }).format(amount)
 
+const parseExpenseDate = (date) => new Date(String(date).replace(' ', 'T'))
+
 const formatDate = (date) =>
-  new Date(date).toLocaleDateString(undefined, {
+  parseExpenseDate(date).toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
+    year: 'numeric',
+  })
+
+const toDateTimeLocal = (date) => String(date).replace(' ', 'T').slice(0, 16)
+
+const getMonthKey = (date) => String(date).slice(0, 7)
+
+const formatMonth = (monthKey) =>
+  new Date(`${monthKey}-01T00:00:00`).toLocaleDateString(undefined, {
+    month: 'long',
     year: 'numeric',
   })
 
@@ -31,8 +43,11 @@ function App() {
   const [expenses, setExpenses] = useState([])
   const [form, setForm] = useState(createEmptyForm)
   const [formOpen, setFormOpen] = useState(false)
-  const [totalPeriod, setTotalPeriod] = useState('month')
-  const [largestPeriod, setLargestPeriod] = useState('month')
+  const [editingExpenseId, setEditingExpenseId] = useState(null)
+  const [selectedMonth, setSelectedMonth] = useState('all')
+  const [monthFilterOpen, setMonthFilterOpen] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+  const monthFilterRef = useRef(null)
 
   useEffect(() => {
     fetch('/api/expenses')
@@ -51,29 +66,54 @@ function App() {
         })
   }, [])
 
-  const now = new Date()
-  const thisMonthExpenses = expenses.filter((expense) => {
-    const expenseDate = new Date(expense.date)
-    return (
-      expenseDate.getMonth() === now.getMonth() &&
-      expenseDate.getFullYear() === now.getFullYear()
+  useEffect(() => {
+    if (!monthFilterOpen) return undefined
+
+    const closeOnOutsideClick = (event) => {
+      if (!monthFilterRef.current?.contains(event.target)) {
+        setMonthFilterOpen(false)
+      }
+    }
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') {
+        setMonthFilterOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', closeOnOutsideClick)
+    document.addEventListener('keydown', closeOnEscape)
+
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [monthFilterOpen])
+
+  const availableMonths = [
+    ...new Set(expenses.map((expense) => getMonthKey(expense.date))),
+  ].sort().reverse()
+  const displayedExpenses = expenses
+    .filter(
+      (expense) =>
+        selectedMonth === 'all' || getMonthKey(expense.date) === selectedMonth,
     )
-  })
+    .sort(
+      (first, second) =>
+        parseExpenseDate(second.date) - parseExpenseDate(first.date),
+    )
+  const expensesForSelectedMonth = displayedExpenses
 
-  const expensesForTotal =
-      totalPeriod === 'month' ? thisMonthExpenses : expenses
+  const selectedPeriodLabel =
+    selectedMonth === 'all' ? 'ALL TIME' : formatMonth(selectedMonth).toUpperCase()
 
-  const totalAmount = expensesForTotal.reduce(
-      (sum, expense) => sum + Number(expense.amount),
-      0,
+  const totalAmount = expensesForSelectedMonth.reduce(
+    (sum, expense) => sum + Number(expense.amount),
+    0,
   )
 
-  const expensesForLargest =
-      largestPeriod === 'month' ? thisMonthExpenses : expenses
-
-  const largestAmount = expensesForLargest.reduce(
-      (largest, expense) => Math.max(largest, Number(expense.amount)),
-      0,
+  const largestAmount = expensesForSelectedMonth.reduce(
+    (largest, expense) => Math.max(largest, Number(expense.amount)),
+    0,
   )
 
   const handleChange = (event) => {
@@ -83,8 +123,9 @@ function App() {
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+    setErrorMessage('')
 
-    const expenseToCreate = {
+    const expenseToSave = {
       description: form.description.trim(),
       amount: Number(form.amount),
       category: form.category,
@@ -92,13 +133,17 @@ function App() {
     }
 
     try {
-      const response = await fetch('/api/expenses', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const isEditing = editingExpenseId !== null
+      const response = await fetch(
+        isEditing ? `/api/expenses/update/${editingExpenseId}` : '/api/expenses',
+        {
+          method: isEditing ? 'PUT' : 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(expenseToSave),
         },
-        body: JSON.stringify(expenseToCreate),
-      })
+      )
 
       if (!response.ok) {
         throw new Error(`Request failed: ${response.status}`)
@@ -106,17 +151,75 @@ function App() {
 
       const savedExpense = await response.json()
 
-      setExpenses((currentExpenses) => [savedExpense, ...currentExpenses])
-      setForm(createEmptyForm())
-      setFormOpen(false)
+      if (isEditing) {
+        setExpenses((currentExpenses) =>
+          currentExpenses.map((expense) =>
+            expense.id === savedExpense.id ? savedExpense : expense,
+          ),
+        )
+      } else {
+        setExpenses((currentExpenses) => [savedExpense, ...currentExpenses])
+      }
+
+      closeForm()
     } catch (error) {
       console.error('Could not save expense:', error)
+      setErrorMessage('Could not save the expense. Please try again.')
+    }
+  }
+
+  const openNewExpenseForm = () => {
+    setEditingExpenseId(null)
+    setForm(createEmptyForm())
+    setErrorMessage('')
+    setFormOpen(true)
+  }
+
+  const openEditForm = (expense) => {
+    setEditingExpenseId(expense.id)
+    setForm({
+      description: expense.description,
+      amount: String(expense.amount),
+      category: expense.category,
+      date: toDateTimeLocal(expense.date),
+    })
+    setErrorMessage('')
+    setFormOpen(true)
+  }
+
+  const handleDelete = async (expense) => {
+    const confirmed = window.confirm(`Delete "${expense.description}"?`)
+    if (!confirmed) return
+
+    setErrorMessage('')
+
+    try {
+      const response = await fetch(`/api/expenses/delete/${expense.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error(`Request failed: ${response.status}`)
+      }
+
+      setExpenses((currentExpenses) =>
+        currentExpenses.filter((currentExpense) => currentExpense.id !== expense.id),
+      )
+
+      if (editingExpenseId === expense.id) {
+        closeForm()
+      }
+    } catch (error) {
+      console.error('Could not delete expense:', error)
+      setErrorMessage('Could not delete the expense. Please try again.')
     }
   }
 
   const closeForm = () => {
     setFormOpen(false)
+    setEditingExpenseId(null)
     setForm(createEmptyForm())
+    setErrorMessage('')
   }
 
   return (
@@ -146,7 +249,7 @@ function App() {
           <button
             className="button button-primary"
             type="button"
-            onClick={() => setFormOpen((isOpen) => !isOpen)}
+            onClick={openNewExpenseForm}
             aria-expanded={formOpen}
             aria-controls="expense-form-panel"
           >
@@ -163,8 +266,12 @@ function App() {
           >
             <div className="card-heading">
               <div>
-                <p className="eyebrow">NEW TRANSACTION</p>
-                <h2 id="form-title">Add an expense</h2>
+                <p className="eyebrow">
+                  {editingExpenseId === null ? 'NEW TRANSACTION' : 'EDIT TRANSACTION'}
+                </p>
+                <h2 id="form-title">
+                  {editingExpenseId === null ? 'Add an expense' : 'Edit expense'}
+                </h2>
               </div>
               <button
                 className="close-button"
@@ -241,7 +348,7 @@ function App() {
                   Cancel
                 </button>
                 <button className="button button-primary" type="submit">
-                  Save expense
+                  {editingExpenseId === null ? 'Save expense' : 'Save changes'}
                 </button>
               </div>
             </form>
@@ -252,46 +359,30 @@ function App() {
           <article className="summary-card summary-card-featured">
             <div className="summary-card-top">
               <span className="summary-icon" aria-hidden="true">↗</span>
-              <button
-                  className="summary-period summary-period-toggle"
-                  type="button"
-                  onClick={() =>
-                      setTotalPeriod(totalPeriod === 'month' ? 'all' : 'month')
-                  }
-              >
-                {totalPeriod === 'month' ? 'THIS MONTH' : 'ALL TIME'}
-              </button>
+              <span className="summary-period">{selectedPeriodLabel}</span>
             </div>
             <p>Total expenses</p>
             <strong>{formatAmount(totalAmount)}</strong>
             <span className="summary-caption">
-              {expensesForTotal.length} expense
-              {expensesForTotal.length === 1 ? '' : 's'} recorded
+              {expensesForSelectedMonth.length} expense
+              {expensesForSelectedMonth.length === 1 ? '' : 's'} recorded
             </span>
           </article>
 
           <article className="summary-card">
             <div className="summary-card-top">
               <span className="summary-icon summary-icon-soft" aria-hidden="true">#</span>
-              <span className="summary-period">ALL TIME</span>
+              <span className="summary-period">{selectedPeriodLabel}</span>
             </div>
             <p>Transactions</p>
-            <strong>{expenses.length}</strong>
-            <span className="summary-caption">Expenses you have added</span>
+            <strong>{expensesForSelectedMonth.length}</strong>
+            <span className="summary-caption">Expenses in this period</span>
           </article>
 
           <article className="summary-card">
             <div className="summary-card-top">
               <span className="summary-icon summary-icon-soft" aria-hidden="true">↑</span>
-              <button
-                  className="summary-period summary-period-toggle"
-                  type="button"
-                  onClick={() =>
-                      setLargestPeriod(largestPeriod === 'month' ? 'all' : 'month')
-                  }
-              >
-                {largestPeriod === 'month' ? 'THIS MONTH' : 'ALL TIME'}
-              </button>
+              <span className="summary-period">{selectedPeriodLabel}</span>
             </div>
             <p>Largest expense</p>
             <strong>{formatAmount(largestAmount)}</strong>
@@ -303,12 +394,66 @@ function App() {
           <div className="transactions-heading">
             <div>
               <p className="eyebrow">ACTIVITY</p>
-              <h2 id="transactions-title">Recent expenses</h2>
+              <h2 id="transactions-title">Expenses</h2>
             </div>
-            <span className="transaction-count">
-              {expenses.length} total
-            </span>
+            <div className="transactions-tools">
+              <div className="month-filter-label">
+                <span>Month</span>
+                <div className="month-filter-dropdown" ref={monthFilterRef}>
+                  <button
+                    className="month-filter"
+                    type="button"
+                    aria-expanded={monthFilterOpen}
+                    aria-controls="month-filter-menu"
+                    onClick={() => setMonthFilterOpen((isOpen) => !isOpen)}
+                  >
+                    <span>
+                      {selectedMonth === 'all' ? 'All months' : formatMonth(selectedMonth)}
+                    </span>
+                    <span className="month-filter-chevron" aria-hidden="true" />
+                  </button>
+                  {monthFilterOpen && (
+                    <div className="month-filter-menu" id="month-filter-menu">
+                      <button
+                        className="month-filter-option"
+                        type="button"
+                        aria-pressed={selectedMonth === 'all'}
+                        onClick={() => {
+                          setSelectedMonth('all')
+                          setMonthFilterOpen(false)
+                        }}
+                      >
+                        All months
+                      </button>
+                      {availableMonths.map((month) => (
+                        <button
+                          className="month-filter-option"
+                          key={month}
+                          type="button"
+                          aria-pressed={selectedMonth === month}
+                          onClick={() => {
+                            setSelectedMonth(month)
+                            setMonthFilterOpen(false)
+                          }}
+                        >
+                          {formatMonth(month)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <span className="transaction-count">
+                {displayedExpenses.length} shown
+              </span>
+            </div>
           </div>
+
+          {errorMessage && (
+            <p className="action-error" role="alert">
+              {errorMessage}
+            </p>
+          )}
 
           {expenses.length === 0 ? (
             <div className="empty-state">
@@ -318,9 +463,21 @@ function App() {
               <button
                 className="button button-secondary"
                 type="button"
-                onClick={() => setFormOpen(true)}
+                onClick={openNewExpenseForm}
               >
                 Add your first expense
+              </button>
+            </div>
+          ) : displayedExpenses.length === 0 ? (
+            <div className="empty-state">
+              <h3>No expenses for {formatMonth(selectedMonth)}</h3>
+              <p>Choose another month to see its expenses.</p>
+              <button
+                className="button button-secondary"
+                type="button"
+                onClick={() => setSelectedMonth('all')}
+              >
+                Show all months
               </button>
             </div>
           ) : (
@@ -332,15 +489,36 @@ function App() {
                     <th scope="col">Category</th>
                     <th scope="col">Date</th>
                     <th scope="col" className="amount-column">Amount</th>
+                    <th scope="col">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {expenses.map((expense) => (
+                  {displayedExpenses.map((expense) => (
                     <tr key={expense.id}>
                       <td className="description-cell">{expense.description}</td>
                       <td><span className="category-tag">{expense.category}</span></td>
                       <td className="date-cell">{formatDate(expense.date)}</td>
                       <td className="amount-cell">{formatAmount(expense.amount)}</td>
+                      <td>
+                        <div className="expense-actions">
+                          <button
+                            className="row-action-button"
+                            type="button"
+                            onClick={() => openEditForm(expense)}
+                            aria-label={`Edit ${expense.description}`}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="row-action-button row-action-delete"
+                            type="button"
+                            onClick={() => handleDelete(expense)}
+                            aria-label={`Delete ${expense.description}`}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
