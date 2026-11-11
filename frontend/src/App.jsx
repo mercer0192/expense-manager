@@ -81,20 +81,37 @@ function App() {
     setForm((currentForm) => ({ ...currentForm, [name]: value }))
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
 
-    const newExpense = {
-      id: Date.now(),
+    const expenseToCreate = {
       description: form.description.trim(),
       amount: Number(form.amount),
       category: form.category,
-      date: form.date,
+      date: `${form.date.replace('T', ' ')}:00`,
     }
 
-    setExpenses((currentExpenses) => [newExpense, ...currentExpenses])
-    setForm(createEmptyForm())
-    setFormOpen(false)
+    try {
+      const response = await fetch('/api/expenses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(expenseToCreate),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Request failed: ${response.status}`)
+      }
+
+      const savedExpense = await response.json()
+
+      setExpenses((currentExpenses) => [savedExpense, ...currentExpenses])
+      setForm(createEmptyForm())
+      setFormOpen(false)
+    } catch (error) {
+      console.error('Could not save expense:', error)
+    }
   }
 
   const closeForm = () => {
@@ -331,11 +348,6 @@ function App() {
             </div>
           )}
         </section>
-
-        <p className="storage-note">
-          This preview keeps entries in the page temporarily. We’ll connect it to
-          your backend next.
-        </p>
       </main>
 
       <footer className="footer">
