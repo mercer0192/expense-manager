@@ -211,6 +211,42 @@ select:focus-visible {
   color: #91a197;
 }
 
+.summary-period-toggle {
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  color: #315b48;
+  background: #dcebe0;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.summary-period-toggle:hover {
+  background: #cfe2d4;
+}
+
+.summary-card-featured .summary-period-toggle {
+  color: #dff1e4;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.summary-card-featured .summary-period-toggle:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.summary-card:not(.summary-card-featured) .summary-period-toggle {
+  color: #38664e;
+  background: #edf4ef;
+}
+
+.summary-card:not(.summary-card-featured) .summary-period-toggle:hover {
+  background: #dcebe0;
+}
+
 .summary-card > p {
   margin: 0 0 5px;
   color: #78867d;
@@ -542,4 +578,5 @@ select:focus-visible {
   .storage-note {
     text-align: left;
   }
+
 }

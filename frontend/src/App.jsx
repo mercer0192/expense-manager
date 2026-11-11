@@ -31,6 +31,8 @@ function App() {
   const [expenses, setExpenses] = useState([])
   const [form, setForm] = useState(createEmptyForm)
   const [formOpen, setFormOpen] = useState(false)
+  const [totalPeriod, setTotalPeriod] = useState('month')
+  const [largestPeriod, setLargestPeriod] = useState('month')
 
   useEffect(() => {
     fetch('/api/expenses')
@@ -58,13 +60,20 @@ function App() {
     )
   })
 
-  const monthlyTotal = thisMonthExpenses.reduce(
-    (total, expense) => total + expense.amount,
-    0,
+  const expensesForTotal =
+      totalPeriod === 'month' ? thisMonthExpenses : expenses
+
+  const totalAmount = expensesForTotal.reduce(
+      (sum, expense) => sum + Number(expense.amount),
+      0,
   )
-  const largestExpense = thisMonthExpenses.reduce(
-    (largest, expense) => Math.max(largest, expense.amount),
-    0,
+
+  const expensesForLargest =
+      largestPeriod === 'month' ? thisMonthExpenses : expenses
+
+  const largestAmount = expensesForLargest.reduce(
+      (largest, expense) => Math.max(largest, Number(expense.amount)),
+      0,
   )
 
   const handleChange = (event) => {
@@ -226,13 +235,21 @@ function App() {
           <article className="summary-card summary-card-featured">
             <div className="summary-card-top">
               <span className="summary-icon" aria-hidden="true">↗</span>
-              <span className="summary-period">THIS MONTH</span>
+              <button
+                  className="summary-period summary-period-toggle"
+                  type="button"
+                  onClick={() =>
+                      setTotalPeriod(totalPeriod === 'month' ? 'all' : 'month')
+                  }
+              >
+                {totalPeriod === 'month' ? 'THIS MONTH' : 'ALL TIME'}
+              </button>
             </div>
             <p>Total expenses</p>
-            <strong>{formatAmount(monthlyTotal)}</strong>
+            <strong>{formatAmount(totalAmount)}</strong>
             <span className="summary-caption">
-              {thisMonthExpenses.length} expense
-              {thisMonthExpenses.length === 1 ? '' : 's'} recorded
+              {expensesForTotal.length} expense
+              {expensesForTotal.length === 1 ? '' : 's'} recorded
             </span>
           </article>
 
@@ -249,10 +266,18 @@ function App() {
           <article className="summary-card">
             <div className="summary-card-top">
               <span className="summary-icon summary-icon-soft" aria-hidden="true">↑</span>
-              <span className="summary-period">THIS MONTH</span>
+              <button
+                  className="summary-period summary-period-toggle"
+                  type="button"
+                  onClick={() =>
+                      setLargestPeriod(largestPeriod === 'month' ? 'all' : 'month')
+                  }
+              >
+                {largestPeriod === 'month' ? 'THIS MONTH' : 'ALL TIME'}
+              </button>
             </div>
             <p>Largest expense</p>
-            <strong>{formatAmount(largestExpense)}</strong>
+            <strong>{formatAmount(largestAmount)}</strong>
             <span className="summary-caption">Your highest single amount</span>
           </article>
         </section>
