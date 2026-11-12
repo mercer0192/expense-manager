@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.wallace.model.Expense;
 import org.wallace.service.ExpenseService;
+import org.wallace.dto.ExpenseDisplayDto;
 
 import java.util.List;
 
@@ -21,8 +22,9 @@ public class ExpenseController {
 
     // Get all expenses
     @GetMapping
-    public List<Expense> getAllExpenses() {
-        return expenseService.getAllExpenses();
+    public List<ExpenseDisplayDto> getAllExpenses(
+            @RequestParam(required = false) String currency) {
+        return expenseService.getAllExpenses(currency);
     }
 
     // Get one expense by ID

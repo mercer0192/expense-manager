@@ -50,6 +50,29 @@
   font-weight: 400;
 }
 
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  margin-right: 24px;
+}
+
+.topbar-link {
+  padding: 8px 11px;
+  color: #65736b;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.topbar-link:hover,
+.topbar-link-active {
+  color: #315b48;
+  background: #eff5f0;
+}
+
 .account-label {
   display: flex;
   align-items: center;
@@ -311,6 +334,27 @@ select:focus-visible {
   cursor: pointer;
 }
 
+.currency-filter {
+  min-width: 72px;
+}
+
+.expense-currency-dropdown {
+  z-index: 6;
+  align-self: flex-start;
+  width: max-content;
+}
+
+.base-currency-tag {
+  margin-left: 8px;
+  padding: 4px 7px;
+  color: #38664e;
+  background: #edf4ef;
+  border-radius: 20px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
 .month-filter-dropdown {
   position: relative;
 }
@@ -440,6 +484,35 @@ select:focus-visible {
   text-transform: uppercase;
 }
 
+.table-sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.table-sort-button:hover {
+  color: #315b48;
+}
+
+.table-sort-button span {
+  color: #9ba79e;
+  font-size: 12px;
+}
+
+.table-sort-button:focus-visible {
+  outline: 2px solid rgba(55, 113, 83, 0.35);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
 .expense-table td {
   color: #526057;
   font-size: 12px;
@@ -516,7 +589,7 @@ select:focus-visible {
 
 .form-card {
   margin: -8px 0 23px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .close-button {
@@ -548,6 +621,13 @@ select:focus-visible {
   color: #65736a;
   font-size: 11px;
   font-weight: 650;
+}
+
+.field-hint {
+  grid-column: 1 / -1;
+  margin: -7px 0 0;
+  color: #89938c;
+  font-size: 11px;
 }
 
 .field input,
@@ -604,6 +684,14 @@ select:focus-visible {
 
   .account-label > span:last-child {
     display: none;
+  }
+
+  .account-label {
+    display: none;
+  }
+
+  .topbar-nav {
+    margin-right: 0;
   }
 
   .dashboard {
@@ -690,6 +778,15 @@ select:focus-visible {
 @media (max-width: 420px) {
   .brand-name {
     font-size: 13px;
+  }
+
+  .topbar-nav {
+    gap: 2px;
+  }
+
+  .topbar-link {
+    padding: 7px 8px;
+    font-size: 11px;
   }
 
   .footer {

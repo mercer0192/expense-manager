@@ -39,4 +39,44 @@
                 newDataType="DATETIME"/>
     </changeSet>
 
+    <changeSet id="3" author="wallace">
+        <createTable tableName="expense_currency">
+
+            <column name="id" type="BIGINT"
+                    autoIncrement="true">
+                <constraints primaryKey="true"
+                             nullable="false"/>
+            </column>
+
+            <column name="currency_code" type="VARCHAR(3)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+
+            <column name="rate_to_base" type="DECIMAL(19,8)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="update_at" type="DATETIME">
+                <constraints nullable="false"/>
+            </column>
+
+        </createTable>
+    </changeSet>
+
+    <changeSet id="4" author="wallace">
+        <insert tableName="expense_currency">
+            <column name="currency_code" value="MYR"/>
+            <column name="rate_to_base" valueNumeric="1.00000000"/>
+            <column name="update_at" valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="5" author="wallace">
+        <addColumn tableName="expenses">
+            <column name="currency_code" type="VARCHAR(3)" defaultValue="MYR">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>
