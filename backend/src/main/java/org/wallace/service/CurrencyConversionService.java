@@ -1,8 +1,6 @@
 package org.wallace.service;
 
 import org.springframework.stereotype.Service;
-import org.wallace.model.Currency;
-import org.wallace.repository.CurrencyRepository;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -10,10 +8,10 @@ import java.math.RoundingMode;
 @Service
 public class CurrencyConversionService {
 
-    private final CurrencyRepository currencyRepository;
+    private final CurrencyRateCacheService currencyRateCacheService;
 
-    public CurrencyConversionService(CurrencyRepository currencyRepository) {
-        this.currencyRepository = currencyRepository;
+    public CurrencyConversionService(CurrencyRateCacheService currencyRateCacheService) {
+        this.currencyRateCacheService = currencyRateCacheService;
     }
 
     public BigDecimal convert(BigDecimal amount, String sourceCode, String targetCode) {
@@ -30,9 +28,6 @@ public class CurrencyConversionService {
     }
 
     private BigDecimal findRate(String currencyCode) {
-        return currencyRepository.findByCurrencyCode(currencyCode)
-                .map(Currency::getRateToBase)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Currency '" + currencyCode + "' is not configured."));
+        return currencyRateCacheService.getRateToBase(currencyCode);
     }
 }

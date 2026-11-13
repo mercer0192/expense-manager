@@ -15,13 +15,16 @@ public class CurrencyService {
 
     private final CurrencyRepository currencyRepository;
     private final ExpenseRepository expenseRepository;
+    private final CurrencyRateCacheService currencyRateCacheService;
     private final String baseCurrencyCode;
 
     public CurrencyService(CurrencyRepository currencyRepository,
                            ExpenseRepository expenseRepository,
+                           CurrencyRateCacheService currencyRateCacheService,
                            @Value("${expense.currency.base-code:MYR}") String baseCurrencyCode) {
         this.currencyRepository = currencyRepository;
         this.expenseRepository = expenseRepository;
+        this.currencyRateCacheService = currencyRateCacheService;
         this.baseCurrencyCode = baseCurrencyCode;
     }
 
@@ -39,7 +42,10 @@ public class CurrencyService {
         }
         currency.setId(null);
         currency.setUpdateAt(LocalDateTime.now());
-        return currencyRepository.save(currency);
+        Currency savedCurrency = currencyRepository.save(currency);
+        currencyRateCacheService.cacheRate(
+                savedCurrency.getCurrencyCode(), savedCurrency.getRateToBase());
+        return savedCurrency;
     }
 
     public Optional<Currency> updateCurrency(Long id, Currency updatedCurrency) {
@@ -56,11 +62,18 @@ public class CurrencyService {
                         throw new IllegalArgumentException(
                                 "This currency code is used by expenses, so it cannot be changed.");
                     }
+                    String previousCurrencyCode = existingCurrency.getCurrencyCode();
                     existingCurrency.setCurrencyCode(updatedCurrency.getCurrencyCode());
                     existingCurrency.setRateToBase(updatedCurrency.getRateToBase());
                     existingCurrency.setUpdateAt(LocalDateTime.now());
 
-                    return currencyRepository.save(existingCurrency);
+                    Currency savedCurrency = currencyRepository.save(existingCurrency);
+                    if (!previousCurrencyCode.equals(savedCurrency.getCurrencyCode())) {
+                        currencyRateCacheService.evictRate(previousCurrencyCode);
+                    }
+                    currencyRateCacheService.cacheRate(
+                            savedCurrency.getCurrencyCode(), savedCurrency.getRateToBase());
+                    return savedCurrency;
                 });
     }
 
@@ -78,6 +91,7 @@ public class CurrencyService {
         }
 
         currencyRepository.deleteById(id);
+        currencyRateCacheService.evictRate(currency.get().getCurrencyCode());
         return true;
     }
 
